@@ -2,6 +2,8 @@
 
 An LLM-powered weather agent built with LangChain and LangGraph, with a FastAPI backend and a cute React chat interface. The agent can use a weather API as a tool, maintain short-term conversation memory, and answer follow-up questions based on previous context. A cartoon cloud mascot reacts to the weather the agent looks up.
 
+ ![Weather Agent screenshot](screenshots/demo.png)
+
 ## Features
 
 - LLM-powered agent using Groq
