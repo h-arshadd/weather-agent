@@ -162,9 +162,9 @@ LLM → Responds directly
 A request for current weather requires the tool:
 
 ```text
-User: What's the weather in Rawalpindi?
+User: What's the weather in [location]?
 
-LLM → Calls get_weather("Rawalpindi")
+LLM → Calls get_weather("[location]")
     → OpenWeatherMap
     → Receives weather data
     → Generates response
