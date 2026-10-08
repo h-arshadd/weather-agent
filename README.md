@@ -122,9 +122,9 @@ python main.py
 ## Example
 
 ```text
-You: hi. tell me about weather in rawalpindi
+You: hi. tell me about weather in [location]
 
-Agent: The current weather in Rawalpindi is ...
+Agent: The current weather in [location] is ...
 
 You: is this good weather to go for a walk?
 
@@ -133,7 +133,7 @@ for a walk ...
 
 You: what city did i ask you about?
 
-Agent: You asked about Rawalpindi.
+Agent: You asked about [location].
 ```
 
 The agent can use information from earlier messages because short-term conversation memory is enabled.
