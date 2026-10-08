@@ -1,39 +1,79 @@
-from langchain_groq import ChatGroq
-from langchain.agents import create_agent
-from langchain.tools import tool
-from langgraph.checkpoint.memory import InMemorySaver  
-from langchain_community.utilities.openweathermap import OpenWeatherMapAPIWrapper
-from dotenv import load_dotenv
+import os
+import re
+from typing import Literal, Optional
 
-load_dotenv()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-llm = ChatGroq(
-    model="openai/gpt-oss-120b"
+from agent import agent
+
+Weather = Literal["clear", "clouds", "rain", "snow", "storm"]
+
+# Checked in order, first match wins (so "thunderstorm" beats "rain")
+CONDITION_KEYWORDS: list[tuple[tuple[str, ...], Weather]] = [
+    (("thunderstorm",), "storm"),
+    (("snow", "sleet"), "snow"),
+    (("rain", "drizzle"), "rain"),
+    (("clear",), "clear"),
+    (("cloud", "overcast", "mist", "fog", "haze"), "clouds"),
+]
+
+# The weather tool returns a line like "Detailed status: light rain"
+STATUS_PATTERN = re.compile(r"Detailed status:\s*(.+)", re.IGNORECASE)
+
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
+app = FastAPI(title="Weather Agent")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_methods=["POST"],
+    allow_headers=["Content-Type"],
 )
 
-weather_wrapper = OpenWeatherMapAPIWrapper()
 
-@tool
-def get_weather(location: str) -> str:
-    """Get current weather information for a location."""
-    return weather_wrapper.run(location)
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str
 
-agent = create_agent(
-    model=llm,
-    tools=[get_weather],
-    checkpointer=InMemorySaver(),
-    system_prompt="You are a helpful weather agent that can search for information regarding weather conditions."
-)
 
-while True:
-    query = input("You: ")
+class ChatResponse(BaseModel):
+    reply: str
+    weather: Optional[Weather] = None
 
-    if query.lower() in ["exit", "quit"]:
-        break
 
+def to_weather(status: str) -> Optional[Weather]:
+    status = status.lower()
+    for keywords, weather in CONDITION_KEYWORDS:
+        if any(keyword in status for keyword in keywords):
+            return weather
+    return None
+
+
+def extract_weather(messages: list) -> Optional[Weather]:
+    """Weather from the latest tool call made during this turn, if any."""
+    last_user_index = max(i for i, m in enumerate(messages) if m.type == "human")
+
+    for message in reversed(messages[last_user_index:]):
+        if message.type != "tool":
+            continue
+        match = STATUS_PATTERN.search(message.content)
+        if match:
+            return to_weather(match.group(1))
+
+    return None
+
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
     result = agent.invoke(
-        {"messages": [{"role": "user", "content": query}]},
-        {"configurable": {"thread_id": "weather_agent_thread"}},
+        {"messages": [{"role": "user", "content": request.message}]},
+        {"configurable": {"thread_id": request.session_id}},
     )
+    messages = result["messages"]
 
-    print("Agent:", result["messages"][-1].content)
+    return ChatResponse(
+        reply=messages[-1].content,
+        weather=extract_weather(messages),
+    )

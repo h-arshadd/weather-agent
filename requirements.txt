@@ -1,8 +1,8 @@
 langchain
 python-dotenv
-numpy
-scikit-learn
 langchain-groq
 langgraph
 pyowm
 langchain-community
+fastapi
+uvicorn

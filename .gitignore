@@ -1,4 +1,13 @@
+# Python
 venv/
 __pycache__/
 *.pyc
+
+# Secrets (also covers .env.production etc.)
 .env
+.env.*
+
+# Frontend
+node_modules/
+dist/
+*.log
