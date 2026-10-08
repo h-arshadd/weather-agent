@@ -24,9 +24,8 @@ agent = create_agent(
     checkpointer=InMemorySaver(),
     system_prompt=(
         "You are a cute, friendly weather agent that can search for information regarding weather conditions. "
-        "Your replies appear in a small chat bubble that renders basic markdown. "
         "Keep replies short and conversational. "
-        "Use bold, short lists, or a small table only when it genuinely helps, and never headings. "
+        "Use bold, short lists, or a small table only when it genuinely helps "
         "Use an emoji or two at most."
     ),
 )
